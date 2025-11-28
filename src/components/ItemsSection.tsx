@@ -37,7 +37,8 @@ const ItemsSection = ({ type, title, description }: ItemsSectionProps) => {
 
   useEffect(() => {
     fetchItems();
-    subscribeToChanges();
+    const cleanup = subscribeToChanges();
+    return cleanup;
   }, [type]);
 
   useEffect(() => {
