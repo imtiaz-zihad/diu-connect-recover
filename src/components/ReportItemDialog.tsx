@@ -80,6 +80,15 @@ const ReportItemDialog = ({ open, onOpenChange, type }: ReportItemDialogProps) =
     setLoading(true);
 
     try {
+      // Check auto-approve setting
+      const { data: autoSetting } = await supabase
+        .from("admin_settings")
+        .select("setting_value")
+        .eq("setting_key", "auto_approve_items")
+        .maybeSingle();
+
+      const autoApprove = autoSetting?.setting_value ?? false;
+
       let imageUrl = null;
 
       // Upload image if provided
@@ -105,14 +114,16 @@ const ReportItemDialog = ({ open, onOpenChange, type }: ReportItemDialogProps) =
       const { error: insertError } = await supabase.from(tableName).insert({
         ...formData,
         image: imageUrl,
-        status: "approved" as const,
+        status: autoApprove ? "approved" : "pending",
       } as any);
 
       if (insertError) throw insertError;
 
       toast({
         title: "Success!",
-        description: `Your ${type} item has been reported successfully`,
+        description: autoApprove 
+          ? `Your ${type} item has been reported and approved.`
+          : `Your ${type} item has been submitted and is pending admin approval.`,
       });
 
       // Reset form
