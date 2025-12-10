@@ -161,11 +161,22 @@ const Admin = () => {
     }
   };
 
-  const updateClaimStatus = async (id: string, status: "approved" | "pending") => {
+  const updateClaimStatus = async (claim: Claim, status: "approved" | "pending") => {
     try {
-      const { error } = await supabase.from("claims").update({ status }).eq("id", id);
+      const { error } = await supabase.from("claims").update({ status }).eq("id", claim.id);
 
       if (error) throw error;
+
+      // When claim is approved, mark the item as "claimed" so it's removed from public listings
+      if (status === "approved") {
+        const tableName = claim.item_type === "lost" ? "lost_items" : "found_items";
+        const { error: itemError } = await supabase
+          .from(tableName)
+          .update({ status: "claimed" })
+          .eq("id", claim.item_id);
+
+        if (itemError) throw itemError;
+      }
 
       toast({ title: "Success", description: `Claim ${status}` });
       fetchAllData();
@@ -285,12 +296,12 @@ const Admin = () => {
                   </div>
                   <div className="flex gap-2 pt-2">
                     {claim.status === "pending" && (
-                      <Button size="sm" onClick={() => updateClaimStatus(claim.id, "approved")}>
+                      <Button size="sm" onClick={() => updateClaimStatus(claim, "approved")}>
                         <Check className="w-4 h-4 mr-1" /> Approve
                       </Button>
                     )}
                     {claim.status === "approved" && (
-                      <Button size="sm" variant="outline" onClick={() => updateClaimStatus(claim.id, "pending")}>
+                      <Button size="sm" variant="outline" onClick={() => updateClaimStatus(claim, "pending")}>
                         <X className="w-4 h-4 mr-1" /> Disapprove
                       </Button>
                     )}
